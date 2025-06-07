@@ -1,9 +1,7 @@
 package cn.langya;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +17,19 @@ public class HttpClient {
     private final Map<String, String> headers = new HashMap<>();
     private final Map<String, String> params = new HashMap<>();
     private final Map<String, String> cookies = new HashMap<>();
+    private Proxy proxy = null;
     private int timeout = 5000; // 5秒
+
+    public HttpClient proxy(String host, int port, ProxyType type) {
+        Proxy.Type proxyType = type == ProxyType.SOCKS ? Proxy.Type.SOCKS : Proxy.Type.HTTP;
+        this.proxy = new Proxy(proxyType, new InetSocketAddress(host, port));
+        return this;
+    }
+
+    public HttpClient proxy(Proxy proxy) {
+        this.proxy = proxy;
+        return this;
+    }
 
     public HttpClient url(String url) {
         this.url = url;
@@ -81,7 +91,9 @@ public class HttpClient {
             realUrl += (url.contains("?") ? "&" : "?") + buildParams(params);
         }
 
-        HttpURLConnection conn = (HttpURLConnection) new URL(realUrl).openConnection();
+        HttpURLConnection conn = proxy == null
+                ? (HttpURLConnection) new URL(realUrl).openConnection()
+                : (HttpURLConnection) new URL(realUrl).openConnection(proxy);
         conn.setRequestMethod(method.name());
         conn.setConnectTimeout(timeout);
         conn.setReadTimeout(timeout);
